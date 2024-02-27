@@ -1,2 +1,2 @@
 ALTER TABLE staging.user_order_log
-ADD COLUMN status varchar(15);
+ADD COLUMN IF NOT EXISTS status varchar(15) DEFAULT 'shipped';
