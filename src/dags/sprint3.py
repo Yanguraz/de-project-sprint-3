@@ -16,8 +16,8 @@ base_url = http_conn_id.host
 
 postgres_conn_id = 'postgresql_de'
 
-nickname = 'batuqagan'
-cohort = '22'
+nickname = "batuqagan"
+cohort = "22"
 
 headers = {
     'X-Nickname': nickname,
@@ -80,6 +80,7 @@ def get_increment(date, ti):
 
 
 def upload_data_to_staging(filename, date, pg_table, pg_schema, ti):
+    
     increment_id = ti.xcom_pull(key='increment_id')
     s3_filename = f'https://storage.yandexcloud.net/s3-sprint3/cohort_{cohort}/{nickname}/project/{increment_id}/{filename}'
     print(s3_filename)
@@ -114,13 +115,12 @@ args = {
 business_dt = '{{ ds }}'
 
 with DAG(
-        'sales_mart_initial_migration',
+        'sales_mart',
         default_args=args,
         description='Provide default dag for sprint3',
-        catchup=False,
+        catchup=True,
         start_date=datetime.today() - timedelta(days=7),
         end_date=datetime.today() - timedelta(days=1),
-        max_active_runs=1
 ) as dag:
     generate_report = PythonOperator(
         task_id='generate_report',
@@ -164,6 +164,12 @@ with DAG(
         sql="sql/mart.f_sales.sql",
         parameters={"date": {business_dt}}
     )
+    update_f_customer_retention = PostgresOperator(
+        task_id='update_f_customer_retention',
+        postgres_conn_id=postgres_conn_id,
+        sql="sql/mart.f_customer_retention.sql",
+        parameters={"date": {business_dt}}
+    )
 
     (
             generate_report
@@ -172,4 +178,5 @@ with DAG(
             >> upload_user_order_inc
             >> [update_d_item_table, update_d_city_table, update_d_customer_table]
             >> update_f_sales
+            >> update_f_customer_retention
     )
